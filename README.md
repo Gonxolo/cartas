@@ -1,5 +1,11 @@
 # Mesa de cartas
 
+## Easiest: offline app (no network at all)
+
+**https://gonxolo.github.io/cartas/** — each player opens it once while online (Safari/Chrome; optionally Share → Add to Home Screen). After that it works in airplane mode. One player taps **Crear partida** and shows the QR; the others scan it with their camera (or type the code) and pick a distinct player number. Every phone computes the same shuffle from the code, so each sees only their own hand and draws from their own slice of the deck. Discards and melds are shown by turning your screen; picking up a card everyone saw = **+ Tomar carta vista**. Source in `docs/`.
+
+## Shared live table (needs a common Wi-Fi): `mesa.js`
+
 A shared card table for phones on the same Wi-Fi. No internet and no app install needed on the players' phones: everyone uses their browser (iPhone or Android). It all lives in one file, `mesa.js`, and needs only Node.js (no `npm install`).
 
 ## Option A: laptop (most reliable)
