@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cartas">
+<meta name="theme-color" content="#0b3019">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<title>Cartas</title>
+<style>
+:root{--felt:#166534;--felt2:#0b3019;--ink:#f1f5f2;--muted:#a7c4b2;--accent:#facc15;--panel:rgba(0,0,0,.28)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{background:radial-gradient(circle at 50% 25%,var(--felt),var(--felt2) 75%);background-color:var(--felt2);color:var(--ink);font:15px/1.35 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overflow:hidden;user-select:none;-webkit-user-select:none}
+button{font:inherit;border:0;border-radius:10px;padding:9px 12px;background:#f1f5f2;color:#0b3019;font-weight:650;flex:none;cursor:pointer}
+button.sec{background:rgba(255,255,255,.14);color:var(--ink)}
+button.warn{background:#fca5a5;color:#450a0a}
+button.big{padding:14px 18px;font-size:17px}
+button:disabled{opacity:.35}
+input,select{font:inherit;padding:9px 10px;border-radius:10px;border:0;background:#f1f5f2;color:#0b3019}
+label{display:flex;gap:8px;align-items:center}
+[hidden]{display:none!important}
+.muted{color:var(--muted)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row+.row{margin-top:10px}
+h3{margin:16px 0 8px;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+
+#setup{height:100%;overflow-y:auto;padding:max(24px,env(safe-area-inset-top)) 18px 32px}
+#setup .wrap{max-width:440px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+#setup h1{margin:8px 0 0;font-size:30px;text-align:center}
+.box{background:var(--panel);border-radius:14px;padding:14px}
+.code{font:700 24px/1.2 ui-monospace,Menlo,monospace;letter-spacing:1px;text-align:center;word-break:break-all}
+#codeIn{width:100%;font:700 20px ui-monospace,Menlo,monospace;text-align:center;text-transform:uppercase}
+.qr{background:#fff;border-radius:12px;padding:10px;width:220px;height:220px;margin:0 auto}
+.qr svg{width:100%;height:100%;display:block}
+.seats{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px}
+
+#game{display:flex;flex-direction:column;height:100%}
+#top{display:flex;gap:8px;align-items:center;padding:8px 10px;padding-top:max(8px,env(safe-area-inset-top));flex:none}
+#top .t{flex:1;font-size:13px;line-height:1.25}
+#top .t b{font-size:15px}
+#mid{flex:1;overflow-y:auto;padding:4px 10px 12px}
+#pileRow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+#pileRow button{padding:10px 12px}
+.sect{margin-bottom:12px}
+.sect .lbl{font-size:12px;color:var(--muted);margin-bottom:5px}
+.card{width:50px;height:72px;border-radius:7px;background:#fff;color:#111;position:relative;box-shadow:0 1px 3px rgba(0,0,0,.45);flex:none;font-weight:750;transition:transform .12s}
+.card .r{position:absolute;top:3px;left:4px;font-size:15px;line-height:1.05;text-align:center}
+.card .big{position:absolute;right:3px;bottom:2px;font-size:24px;line-height:1}
+.card.sp .r{font-size:17px}
+.card.joker .r{font-size:9px;letter-spacing:-.3px}
+.card.sel{transform:translateY(-12px);box-shadow:0 0 0 3px var(--accent),0 4px 10px rgba(0,0,0,.5)}
+.card.tsel{box-shadow:0 0 0 3px var(--accent)}
+.cards{display:flex;flex-wrap:wrap;gap:4px}
+#groups{display:flex;flex-wrap:wrap;gap:8px}
+.grp{background:var(--panel);border-radius:10px;padding:8px;display:flex;border:2px solid transparent}
+.grp.gsel{border-color:var(--accent)}
+.grp .card+.card{margin-left:-24px}
+.empty-msg{color:var(--muted);font-size:13px}
+#bottom{flex:none;background:rgba(0,0,0,.35);padding:8px 8px max(10px,env(safe-area-inset-bottom));border-top:1px solid rgba(255,255,255,.1)}
+#acts{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px}
+#acts button{padding:8px 11px;font-size:14px}
+#hand{display:flex;flex-wrap:wrap;gap:4px;padding-top:12px;min-height:84px;max-height:42vh;overflow-y:auto}
+
+#ov{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center;z-index:10}
+.sheet{background:#0f2c1b;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;border-radius:16px 16px 0 0;padding:16px 16px max(16px,env(safe-area-inset-bottom))}
+.sheet h3:first-child{margin-top:0}
+#show{position:fixed;inset:0;background:#0b3019;z-index:15;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:20px;text-align:center}
+#show .title{font-size:22px;font-weight:700}
+#show .cards{justify-content:center;gap:10px}
+#show .card{transform:scale(1.7);margin:30px 22px}
+.pick{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.pick button{padding:8px 0;font-size:15px;background:#fff}
+#toast{position:fixed;left:50%;top:70px;transform:translateX(-50%);background:#111;color:#fff;padding:10px 14px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:30;max-width:90vw;text-align:center}
+#toast.show{opacity:1}
+.score{display:flex;gap:8px;align-items:center}
+.score input{width:110px}
+.score b{min-width:40px;text-align:center}
+</style>
+</head>
+<body>
+
+<div id="setup"><div class="wrap" id="setupWrap"></div></div>
+
+<div id="game" hidden>
+  <div id="top">
+    <div class="t" id="info"></div>
+    <button class="sec" data-act="undo">↶</button>
+    <button class="sec" data-act="menu">☰</button>
+  </div>
+  <div id="mid">
+    <div id="pileRow"></div>
+    <div class="sect" id="lastSect"></div>
+    <div class="sect"><div class="lbl">Mi mesa (cartas que bajé; muéstralas a los demás)</div><div id="groups"></div></div>
+  </div>
+  <div id="bottom">
+    <div id="acts"></div>
+    <div id="hand"></div>
+  </div>
+</div>
+
+<div id="ov" hidden><div class="sheet" id="sheet"></div></div>
+<div id="show" hidden></div>
+<div id="toast"></div>
+
+<script src="qrcode.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+const store = {
+  get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+};
+const ALPH = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const DECK_NAMES = { F: 'Francesa (52) ♠♥♦♣', S: 'Española (40) 🪙🏆⚔️🪵', E: 'Española (48, con 8 y 9)' };
+const FR = { S: ['♠', '#111'], H: ['♥', '#d0021b'], D: ['♦', '#d0021b'], C: ['♣', '#111'] };
+const SP = { oros: ['🪙', '#a16207'], copas: ['🏆', '#b91c1c'], espadas: ['⚔️', '#1e3a8a'], bastos: ['🪵', '#166534'] };
+const SUIT_ORDER = { S: 0, H: 1, C: 2, D: 3, oros: 4, copas: 5, espadas: 6, bastos: 7, X: 9 };
+const FR_RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+const rankVal = (r) => ({ A: 1, J: 11, Q: 12, K: 13, JOKER: 99 })[r] || +r;
+
+// ---------- game code ----------
+// Format: <deck F|S|E><copies 1-3><J if jokers><players>-<cards each>-<table cards>-<seed>
+function parseCode(s) {
+  s = String(s || '').toUpperCase().replace(/\s+/g, '');
+  const m = s.match(/^([FSE])([1-3])(J?)([2-8])-(\d{1,2})-(\d{1,2})-([A-Z0-9]{4,8})$/);
+  if (!m) return null;
+  const c = { deck: m[1], copies: +m[2], jokers: !!m[3], players: +m[4], n: +m[5], m: +m[6], seed: m[7] };
+  return c.n * c.players + c.m <= deckSize(c) ? c : null;
+}
+function makeCode(c) { return c.deck + c.copies + (c.jokers ? 'J' : '') + c.players + '-' + c.n + '-' + c.m + '-' + c.seed; }
+function deckSize(c) { return c.copies * ((c.deck === 'F' ? 52 : c.deck === 'S' ? 40 : 48) + (c.jokers ? 2 : 0)); }
+function newSeed() { let s = ''; const r = crypto.getRandomValues(new Uint32Array(5)); for (const x of r) s += ALPH[x % ALPH.length]; return s; }
+
+function suitsOf(deck) { return deck === 'F' ? ['S', 'H', 'D', 'C'] : ['oros', 'copas', 'espadas', 'bastos']; }
+function ranksOf(deck) { return deck === 'F' ? FR_RANKS : deck === 'S' ? ['1', '2', '3', '4', '5', '6', '7', '10', '11', '12'] : ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12']; }
+
+function buildDeck(c) {
+  const cards = [];
+  for (let k = 0; k < c.copies; k++) {
+    for (const s of suitsOf(c.deck)) for (const r of ranksOf(c.deck)) cards.push({ id: k + s + r, s: s, r: r });
+    if (c.jokers) for (let j = 0; j < 2; j++) cards.push({ id: k + 'X' + j, s: 'X', r: 'JOKER' });
+  }
+  return cards;
+}
+
+function seededRng(str) {
+  let h = 1779033703 ^ str.length;
+  for (let i = 0; i < str.length; i++) { h = Math.imul(h ^ str.charCodeAt(i), 3432918353); h = (h << 13) | (h >>> 19); }
+  h = Math.imul(h ^ (h >>> 16), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909);
+  let a = (h ^= h >>> 16) >>> 0;
+  return () => { a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+
+// Every phone computes the same shuffle from code + round. Each player only ever
+// draws from their own slice of the remaining deck, so no two phones hand out the same card.
+let dealCache = null;
+function getDeal() {
+  const key = G.code + '#' + G.round;
+  if (dealCache && dealCache.key === key) return dealCache;
+  const c = G.cfg, rng = seededRng(key), deck = buildDeck(c);
+  for (let i = deck.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); const t = deck[i]; deck[i] = deck[j]; deck[j] = t; }
+  const hands = [], streams = [];
+  for (let p = 0; p < c.players; p++) { hands.push([]); streams.push([]); }
+  let idx = 0;
+  for (let i = 0; i < c.n; i++) for (let p = 0; p < c.players; p++) hands[p].push(deck[idx++]);
+  const mesa = deck.slice(idx, idx + c.m); idx += c.m;
+  deck.slice(idx).forEach((card, j) => streams[j % c.players].push(card));
+  dealCache = { key: key, hands: hands, mesa: mesa, streams: streams };
+  return dealCache;
+}
+
+// ---------- state ----------
+let G = store.get('cartas-game');   // { code, cfg, round, seat, hand, drawn, flipped, groups, last }
+let undoStack = [];
+let sel = [], gsel = null, sheet = null, setupView = 'home', setupCode = '';
+let names = store.get('cartas-names') || {};
+let scores = store.get('cartas-scores') || {};
+
+function save() { store.set('cartas-game', G); }
+function snapshot() { undoStack.push(JSON.stringify(G)); if (undoStack.length > 40) undoStack.shift(); }
+function uid() { return 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+function startRound(code, seat, round) {
+  const cfg = parseCode(code);
+  G = { code: makeCode(cfg), cfg: cfg, round: round || 1, seat: seat, hand: [], drawn: 0, flipped: 0, groups: [], last: null };
+  G.hand = getDeal().hands[seat - 1].slice();
+  undoStack = []; sel = []; gsel = null;
+  save(); render();
+}
+
+// ---------- rendering ----------
+function esc(s) { return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
+function cardHTML(c, attrs, cls) {
+  attrs = attrs || ''; cls = cls || '';
+  if (c.s === 'X') return '<div class="card joker ' + cls + '" ' + attrs + '><span class="r">JOKER</span><span class="big">🃏</span></div>';
+  const fr = FR[c.s], d = fr || SP[c.s];
+  return '<div class="card ' + (fr ? '' : 'sp ') + cls + '" ' + attrs + ' style="color:' + d[1] + '"><span class="r">' + c.r + (fr ? '<br>' + d[0] : '') + '</span><span class="big">' + d[0] + '</span></div>';
+}
+let toastT;
+function toast(m) { const t = $('#toast'); t.textContent = m; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2400); }
+function joinUrl(code) { return location.origin + location.pathname + '#c=' + code; }
+function qrSvg(text) { const q = qrcode(0, 'M'); q.addData(text); q.make(); return q.createSvgTag({ cellSize: 4, margin: 2, scalable: true }); }
+function pname(p) { return names[p] || 'Jugador ' + p; }
+
+function render() {
+  const inGame = !!(G && G.cfg && setupView === 'game');
+  $('#setup').hidden = inGame; $('#game').hidden = !inGame;
+  if (!inGame) return renderSetup();
+  const deal = getDeal();
+  sel = sel.filter((id) => G.hand.some((c) => c.id === id));
+  if (gsel && !G.groups.some((g) => g.id === gsel.g)) gsel = null;
+  if (gsel && gsel.c && !G.groups.find((g) => g.id === gsel.g).cards.some((c) => c.id === gsel.c)) gsel.c = null;
+
+  $('#info').innerHTML = '<b>' + esc(pname(G.seat)) + '</b> · Ronda ' + G.round + '<br><span class="muted">' + G.code + ' · ' + G.hand.length + ' cartas</span>';
+  const left = deal.streams[G.seat - 1].length - G.drawn;
+  let piles = '<button data-act="draw"' + (left ? '' : ' disabled') + '>Robar (' + left + ')</button>';
+  piles += '<button class="sec" data-act="picker">+ Tomar carta vista</button>';
+  if (G.seat === 1 && G.cfg.m) piles += '<button class="sec" data-act="flip"' + (G.flipped < deal.mesa.length ? '' : ' disabled') + '>Voltear de la mesa (' + (deal.mesa.length - G.flipped) + ')</button>';
+  $('#pileRow').innerHTML = piles;
+
+  let last = '';
+  if (G.seat === 1 && G.flipped) last += '<div class="lbl">Cartas volteadas de la mesa</div><div class="cards" data-act="showFlipped">' + deal.mesa.slice(0, G.flipped).map((c) => cardHTML(c)).join('') + '</div>';
+  if (G.last) last += '<div class="lbl" style="margin-top:8px">' + esc(G.last.title) + ' (toca para mostrar en grande)</div><div class="cards" data-act="showLast">' + G.last.cards.map((c) => cardHTML(c)).join('') + '</div>';
+  $('#lastSect').innerHTML = last;
+
+  $('#groups').innerHTML = G.groups.length ? G.groups.map((g) =>
+    '<div class="grp ' + (gsel && gsel.g === g.id ? 'gsel' : '') + '" data-g="' + g.id + '">' + g.cards.map((c) => cardHTML(c, 'data-tc="' + c.id + '"', gsel && gsel.c === c.id ? 'tsel' : '')).join('') + '</div>'
+  ).join('') : '<div class="empty-msg">Nada todavía. Selecciona cartas y toca «Bajar».</div>';
+
+  const a = [];
+  if (sel.length) {
+    a.push('<button data-act="discard">Descartar</button>');
+    a.push('<button data-act="play">Bajar (' + sel.length + ')</button>');
+    if (gsel) a.push('<button data-act="add">Agregar al grupo</button>');
+    a.push('<button class="sec" data-act="showSel">Mostrar 👀</button>');
+    a.push('<button class="sec" data-act="remove">Entregar / quitar</button>');
+    a.push('<button class="sec" data-act="gather">Juntar ⇤</button>');
+    a.push('<button class="sec" data-act="clearSel">✕</button>');
+  } else if (gsel) {
+    if (gsel.c) a.push('<button data-act="takeCard">Volver carta a la mano</button>');
+    a.push('<button data-act="takeGroup">Volver grupo a la mano</button>');
+    a.push('<button class="sec" data-act="showGroup">Mostrar 👀</button>');
+    a.push('<button class="sec" data-act="clearSel">✕</button>');
+  } else {
+    a.push('<button class="sec" data-act="sortSuit">Ordenar palo</button>');
+    a.push('<button class="sec" data-act="sortRank">Ordenar número</button>');
+    a.push('<button class="sec" data-act="showHand">Mostrar mano 👀</button>');
+  }
+  $('#acts').innerHTML = a.join('');
+  $('#hand').innerHTML = G.hand.length ? G.hand.map((c) => cardHTML(c, 'data-id="' + c.id + '"', sel.includes(c.id) ? 'sel' : '')).join('') : '<div class="empty-msg">Sin cartas en la mano.</div>';
+  if (sheet) renderSheet();
+}
+
+function renderSetup() {
+  const w = $('#setupWrap');
+  let h = '<h1>🃏 Cartas</h1>';
+  if (setupView === 'home') {
+    h += '<div class="muted" style="text-align:center">Funciona sin internet y en modo avión. Cada teléfono es tu mano.</div>';
+    if (G && G.cfg) h += '<button class="big" data-act="resume">Continuar partida (' + esc(pname(G.seat)) + ', ronda ' + G.round + ')</button>';
+    h += '<button class="big' + (G && G.cfg ? ' sec' : '') + '" data-act="toCreate">Crear partida</button>';
+    h += '<button class="big sec" data-act="toJoin">Unirme con código</button>';
+    h += '<div class="box muted" style="font-size:13px"><b style="color:var(--ink)">Cómo funciona:</b> uno crea la partida y muestra el código QR. Los demás lo escanean con la cámara (o escriben el código) y eligen su número de jugador. Todos los teléfonos barajan igual y cada uno ve solo su mano. Lo que descartas o bajas lo muestras con tu pantalla; si alguien recoge una carta que todos vieron, la agrega con «+ Tomar carta vista».</div>';
+  } else if (setupView === 'create') {
+    const d = store.get('cartas-lastcfg') || { deck: 'F', copies: 1, jokers: false, players: 3, n: 7, m: 1 };
+    h += '<div class="box"><h3>Baraja</h3><div class="row"><select id="cDeck">' + Object.keys(DECK_NAMES).map((k) => '<option value="' + k + '"' + (k === d.deck ? ' selected' : '') + '>' + DECK_NAMES[k] + '</option>').join('') + '</select>';
+    h += '<select id="cCopies">' + [1, 2, 3].map((n) => '<option value="' + n + '"' + (n === d.copies ? ' selected' : '') + '>' + n + ' baraja' + (n > 1 ? 's' : '') + '</option>').join('') + '</select></div>';
+    h += '<div class="row"><label><input type="checkbox" id="cJokers"' + (d.jokers ? ' checked' : '') + '> 2 jokers por baraja</label></div>';
+    h += '<h3>Jugadores</h3><div class="row"><select id="cPlayers">' + [2, 3, 4, 5, 6, 7, 8].map((n) => '<option' + (n === d.players ? ' selected' : '') + '>' + n + '</option>').join('') + '</select></div>';
+    h += '<h3>Cartas a cada uno</h3><div class="row"><input id="cN" type="number" min="0" max="40" value="' + d.n + '" style="width:90px"></div>';
+    h += '<h3>Cartas para voltear en la mesa</h3><div class="row"><input id="cM" type="number" min="0" max="20" value="' + d.m + '" style="width:90px"><span class="muted" style="font-size:13px">ej. 1 para iniciar el descarte, 5 para póker. Solo el Jugador 1 las voltea.</span></div>';
+    h += '<div class="row" style="margin-top:16px"><button class="big" data-act="create">Crear</button><button class="sec" data-act="toHome">Volver</button></div></div>';
+  } else if (setupView === 'join') {
+    const cfg = parseCode(setupCode);
+    h += '<div class="box"><h3>Código de la partida</h3><input id="codeIn" value="' + esc(setupCode) + '" placeholder="F13-7-1-ABCDE" autocomplete="off" autocapitalize="characters" spellcheck="false">';
+    if (cfg) {
+      h += '<div class="muted" style="margin-top:8px;font-size:13px">' + DECK_NAMES[cfg.deck] + (cfg.copies > 1 ? ' × ' + cfg.copies : '') + (cfg.jokers ? ' + jokers' : '') + ' · ' + cfg.players + ' jugadores · ' + cfg.n + ' cartas c/u</div>';
+      h += '<h3>Para que se unan los demás</h3><div class="qr">' + qrSvg(joinUrl(makeCode(cfg))) + '</div><div class="code" style="margin-top:8px">' + makeCode(cfg) + '</div>';
+      h += '<h3>¿Qué jugador eres? (cada uno uno distinto)</h3><div class="seats">';
+      for (let p = 1; p <= cfg.players; p++) h += '<button class="big" data-seat="' + p + '">' + p + '</button>';
+      h += '</div>';
+    } else if (setupCode) h += '<div class="muted" style="margin-top:8px">Código incompleto o inválido</div>';
+    h += '<div class="row" style="margin-top:16px"><button class="sec" data-act="toHome">Volver</button></div></div>';
+  }
+  w.innerHTML = h;
+  const ci = $('#codeIn');
+  if (ci) ci.oninput = () => { const pos = ci.selectionStart; setupCode = ci.value.toUpperCase(); if (parseCode(setupCode)) { renderSetup(); } else { ci.value = setupCode; ci.setSelectionRange(pos, pos); } };
+}
+
+function renderSheet() {
+  let h = '';
+  if (sheet === 'menu') {
+    h += '<h3>Ronda</h3><div class="row"><button data-act="nextRound">Siguiente ronda (' + (G.round + 1) + ')</button><button class="sec" data-act="redoRound">Repartir de nuevo ronda ' + G.round + '</button></div>';
+    h += '<div class="muted" style="font-size:12px;margin-top:6px">Todos deben tocar lo mismo para quedar en la misma ronda.</div>';
+    h += '<h3>Invitar / volver a escanear</h3><div class="qr">' + qrSvg(joinUrl(G.code)) + '</div><div class="code" style="margin-top:8px">' + G.code + '</div>';
+    h += '<h3>Nombres y puntajes</h3>';
+    for (let p = 1; p <= G.cfg.players; p++) h += '<div class="score row"><input data-name="' + p + '" value="' + esc(names[p] || '') + '" placeholder="Jugador ' + p + '"><button class="sec" data-score="' + p + '" data-d="-1">−</button><b>' + (scores[p] || 0) + '</b><button class="sec" data-score="' + p + '" data-d="1">+</button><button class="sec" data-score="' + p + '" data-d="10">+10</button></div>';
+    h += '<div class="row" style="margin-top:8px"><button class="sec" data-act="resetScores">Puntajes a 0</button></div>';
+    h += '<h3>Partida</h3><div class="row"><button class="warn" data-act="leave">Salir / nueva partida</button></div>';
+    h += '<div class="row" style="margin-top:16px"><button data-act="close" style="flex:1">Cerrar</button></div>';
+  } else if (sheet === 'picker') {
+    h += '<h3>Toca la carta que recogiste (se agrega a tu mano)</h3>';
+    for (const s of suitsOf(G.cfg.deck)) {
+      const d = FR[s] || SP[s];
+      h += '<div class="row" style="margin-bottom:4px"><span style="font-size:20px;width:26px">' + d[0] + '</span></div><div class="pick" style="margin-bottom:10px">' + ranksOf(G.cfg.deck).map((r) => '<button data-pick="' + s + '|' + r + '" style="color:' + d[1] + '">' + r + '</button>').join('') + '</div>';
+    }
+    if (G.cfg.jokers) h += '<div class="row"><button data-pick="X|JOKER">🃏 Joker</button></div>';
+    h += '<div class="row" style="margin-top:14px"><button data-act="close" style="flex:1">Listo</button></div>';
+  }
+  $('#sheet').innerHTML = h;
+}
+
+function openSheet(k) { sheet = k; renderSheet(); $('#ov').hidden = false; }
+function closeSheet() { sheet = null; $('#ov').hidden = true; }
+function showBig(title, cards) {
+  $('#show').innerHTML = '<div class="title">' + esc(title) + '</div><div class="cards">' + cards.map((c) => cardHTML(c)).join('') + '</div><div class="muted">toca para cerrar</div>';
+  $('#show').hidden = false;
+}
+
+// ---------- actions ----------
+function takeSel() { const cards = sel.map((id) => G.hand.find((c) => c.id === id)); G.hand = G.hand.filter((c) => !sel.includes(c.id)); sel = []; return cards; }
+function commit() { save(); render(); }
+
+function doAct(k) {
+  const deal = G && G.cfg ? getDeal() : null;
+  switch (k) {
+    case 'toHome': setupView = 'home'; return render();
+    case 'toCreate': setupView = 'create'; return render();
+    case 'toJoin': setupView = 'join'; setupCode = ''; return render();
+    case 'resume': setupView = 'game'; return render();
+    case 'create': {
+      const c = { deck: $('#cDeck').value, copies: +$('#cCopies').value, jokers: $('#cJokers').checked, players: +$('#cPlayers').value, n: Math.max(0, +$('#cN').value || 0), m: Math.max(0, +$('#cM').value || 0) };
+      if (c.n * c.players + c.m > deckSize(c)) return toast('No alcanzan las cartas: ' + deckSize(c) + ' en total');
+      store.set('cartas-lastcfg', c);
+      c.seed = newSeed();
+      setupCode = makeCode(c); setupView = 'join'; return render();
+    }
+    case 'draw': {
+      const stream = deal.streams[G.seat - 1];
+      if (G.drawn >= stream.length) return toast('Se acabó tu parte del mazo. Usa «+ Tomar carta vista» para el descarte.');
+      snapshot(); G.hand.push(stream[G.drawn++]); return commit();
+    }
+    case 'flip': {
+      if (G.flipped >= deal.mesa.length) return;
+      snapshot(); G.flipped++; commit();
+      return showBig('Carta de la mesa', deal.mesa.slice(G.flipped - 1, G.flipped));
+    }
+    case 'showFlipped': return showBig('Cartas de la mesa', deal.mesa.slice(0, G.flipped));
+    case 'picker': return openSheet('picker');
+    case 'discard': { snapshot(); const cards = takeSel(); G.last = { title: 'Mi último descarte', cards: cards }; commit(); return showBig('Descarto', cards); }
+    case 'remove': { snapshot(); const cards = takeSel(); G.last = { title: 'Entregué / quité', cards: cards }; commit(); return showBig('Entrego', cards); }
+    case 'play': { snapshot(); const cards = takeSel(); G.groups.push({ id: uid(), cards: cards }); commit(); return showBig('Bajo', cards); }
+    case 'add': { snapshot(); const cards = takeSel(); const g = G.groups.find((x) => x.id === gsel.g); g.cards.push.apply(g.cards, cards); gsel = null; commit(); return showBig('Agrego', cards); }
+    case 'showSel': return showBig('Mis cartas', sel.map((id) => G.hand.find((c) => c.id === id)));
+    case 'showHand': return showBig('Mi mano', G.hand);
+    case 'showLast': return showBig(G.last.title, G.last.cards);
+    case 'showGroup': return showBig('Mi mesa', G.groups.find((x) => x.id === gsel.g).cards);
+    case 'gather': { const front = sel.map((id) => G.hand.find((c) => c.id === id)); G.hand = front.concat(G.hand.filter((c) => !sel.includes(c.id))); sel = []; return commit(); }
+    case 'clearSel': sel = []; gsel = null; return render();
+    case 'takeCard': { snapshot(); const g = G.groups.find((x) => x.id === gsel.g); const i = g.cards.findIndex((c) => c.id === gsel.c); G.hand.push(g.cards.splice(i, 1)[0]); G.groups = G.groups.filter((x) => x.cards.length); gsel = null; return commit(); }
+    case 'takeGroup': { snapshot(); const g = G.groups.find((x) => x.id === gsel.g); G.hand.push.apply(G.hand, g.cards); G.groups = G.groups.filter((x) => x !== g); gsel = null; return commit(); }
+    case 'sortSuit': G.hand.sort((a, b) => SUIT_ORDER[a.s] - SUIT_ORDER[b.s] || rankVal(a.r) - rankVal(b.r)); return commit();
+    case 'sortRank': G.hand.sort((a, b) => rankVal(a.r) - rankVal(b.r) || SUIT_ORDER[a.s] - SUIT_ORDER[b.s]); return commit();
+    case 'undo': {
+      if (!undoStack.length) return toast('Nada que deshacer');
+      G = JSON.parse(undoStack.pop()); sel = []; gsel = null; return commit();
+    }
+    case 'menu': return openSheet('menu');
+    case 'close': return closeSheet();
+    case 'nextRound':
+      if (!confirm('¿Pasar a la ronda ' + (G.round + 1) + '? Se reparte de nuevo.')) return;
+      closeSheet(); return startRound(G.code, G.seat, G.round + 1);
+    case 'redoRound':
+      if (!confirm('¿Volver a empezar la ronda ' + G.round + ' con las mismas cartas iniciales?')) return;
+      closeSheet(); return startRound(G.code, G.seat, G.round);
+    case 'resetScores': if (confirm('¿Poner todos los puntajes en 0?')) { scores = {}; store.set('cartas-scores', scores); renderSheet(); } return;
+    case 'leave':
+      if (!confirm('¿Salir de esta partida? Tu mano se pierde.')) return;
+      closeSheet(); G = null; store.set('cartas-game', null); setupView = 'home'; return render();
+  }
+}
+
+document.addEventListener('click', (e) => {
+  if (e.target.id === 'ov') return closeSheet();
+  if (e.target.closest('#show')) { $('#show').hidden = true; return; }
+  const t = e.target.closest('[data-id],[data-tc],[data-g],[data-act],[data-seat],[data-pick],[data-score]');
+  if (!t) return;
+  const ds = t.dataset;
+  if (ds.id) { sel = sel.includes(ds.id) ? sel.filter((x) => x !== ds.id) : sel.concat(ds.id); return render(); }
+  if (ds.tc) { const g = t.closest('[data-g]').dataset.g; gsel = gsel && gsel.c === ds.tc ? null : { g: g, c: ds.tc }; return render(); }
+  if (ds.g) { gsel = gsel && gsel.g === ds.g && !gsel.c ? null : { g: ds.g, c: null }; return render(); }
+  if (ds.seat) {
+    const code = makeCode(parseCode(setupCode));
+    if (G && G.cfg && G.code === code && G.seat === +ds.seat) { setupView = 'game'; return render(); }
+    if (G && G.cfg && !confirm('Esto reemplaza tu partida actual. ¿Seguir?')) return;
+    setupView = 'game'; return startRound(code, +ds.seat, 1);
+  }
+  if (ds.pick) {
+    const p = ds.pick.split('|'); snapshot(); G.hand.push({ id: uid(), s: p[0], r: p[1] }); commit();
+    return toast('Agregada a tu mano');
+  }
+  if (ds.score) { scores[ds.score] = (scores[ds.score] || 0) + +ds.d; store.set('cartas-scores', scores); return renderSheet(); }
+  if (ds.act) doAct(ds.act);
+});
+document.addEventListener('change', (e) => {
+  if (e.target.dataset.name) { names[e.target.dataset.name] = e.target.value.trim(); store.set('cartas-names', names); render(); }
+});
+
+function readHash() {
+  const m = location.hash.match(/c=([^&]+)/);
+  if (!m) return false;
+  const code = decodeURIComponent(m[1]).toUpperCase();
+  if (!parseCode(code)) return false;
+  if (G && G.cfg && G.code === code) { setupView = 'game'; return true; }
+  setupCode = code; setupView = 'join'; return true;
+}
+window.addEventListener('hashchange', () => { readHash(); render(); });
+if (!readHash() && G && G.cfg) setupView = 'game';
+render();
+
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
