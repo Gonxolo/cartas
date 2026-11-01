@@ -81,6 +81,48 @@ h3{margin:16px 0 8px;font-size:13px;color:var(--muted);text-transform:uppercase;
 .score{display:flex;gap:8px;align-items:center}
 .score input{width:110px}
 .score b{min-width:40px;text-align:center}
+
+/* live table */
+#live{height:100%}
+#lvPair{height:100%;overflow-y:auto;padding:max(24px,env(safe-area-inset-top)) 18px 32px}
+#lvPairWrap{max-width:440px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+#lvPairWrap h1{margin:8px 0 0;font-size:30px;text-align:center}
+#lvGame{display:flex;flex-direction:column;height:100%}
+#lvTop{display:flex;gap:6px;padding:8px;padding-top:max(8px,env(safe-area-inset-top));overflow-x:auto;flex:none;align-items:stretch}
+.dot{width:10px;height:10px;border-radius:50%;background:#ef4444;flex:none;align-self:center}
+.dot.on{background:#4ade80}
+.pl{flex:none;background:var(--panel);border-radius:10px;padding:5px 9px;font-size:13px;border:2px solid transparent;min-width:84px;color:var(--ink);font-weight:400;text-align:left}
+.pl.turn{border-color:var(--accent)}
+.pl .n{font-weight:700;white-space:nowrap}
+.pl.off .n{opacity:.45}
+.pl .sc{display:flex;gap:6px;align-items:center;margin-top:3px}
+.pl .sc button{padding:1px 8px;border-radius:6px;font-size:13px}
+.pl.inv{border:2px dashed rgba(255,255,255,.35);font-weight:700;font-size:14px}
+#lvBanner{flex:none;background:#7f1d1d;color:#fff;padding:8px 10px;font-size:14px;display:flex;gap:10px;align-items:center;justify-content:space-between}
+#lvBanner button{padding:6px 10px}
+#lvMid{flex:1;overflow-y:auto;padding:4px 8px 12px}
+#lvLog{font-size:12px;color:var(--muted);min-height:16px;margin:0 2px 6px}
+#lvLog div:last-child{color:var(--ink)}
+#lvPiles{display:flex;gap:18px;justify-content:center;margin:6px 0 12px}
+.pile{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;color:var(--muted);cursor:pointer}
+.card.back{background:repeating-linear-gradient(45deg,#7f1d1d 0 6px,#991b1b 6px 12px);border:3px solid #fff}
+.card.empty{background:transparent;border:2px dashed rgba(255,255,255,.3);box-shadow:none}
+#lvTable{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start}
+.grp.owned{padding-top:16px;position:relative;min-height:96px}
+.grp .who{position:absolute;top:2px;left:8px;font-size:10px;color:var(--muted)}
+.rev{margin-top:10px}
+.rev .t{font-size:12px;color:var(--muted);margin-bottom:4px}
+#lvActs{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px}
+#lvActs button{padding:8px 11px;font-size:14px}
+#lvHand{display:flex;flex-wrap:wrap;gap:4px;padding-top:12px;min-height:84px;max-height:42vh;overflow-y:auto}
+#lov{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center;z-index:10}
+.qr.big{width:min(280px,80vw);height:min(280px,80vw)}
+.cam{width:100%;max-width:220px;aspect-ratio:4/3;object-fit:cover;border-radius:12px;background:#000;display:block;margin:8px auto 0}
+.status{font-size:14px;margin-top:8px}
+.status.bad,.box.bad{color:#fecaca}
+.box.bad{background:rgba(127,29,29,.55)}
+.status.ok{color:#bbf7d0}
+summary{cursor:pointer}
 </style>
 </head>
 <body>
@@ -104,11 +146,33 @@ h3{margin:16px 0 8px;font-size:13px;color:var(--muted);text-transform:uppercase;
   </div>
 </div>
 
+<div id="live" hidden>
+  <div id="lvPair"><div id="lvPairWrap"></div></div>
+  <div id="lvGame" hidden>
+    <div id="lvTop"><div id="lvDot" class="dot"></div><div id="lvPlayers" style="display:contents"></div></div>
+    <div id="lvBanner" hidden></div>
+    <div id="lvMid">
+      <div id="lvLog"></div>
+      <div id="lvPiles"></div>
+      <div id="lvTable"></div>
+      <div id="lvRevealed"></div>
+    </div>
+    <div id="bottomLive" class="bottomLive" style="flex:none;background:rgba(0,0,0,.35);padding:8px 8px max(10px,env(safe-area-inset-bottom));border-top:1px solid rgba(255,255,255,.1)">
+      <div id="lvActs"></div>
+      <div id="lvHand"></div>
+    </div>
+  </div>
+</div>
+<div id="lov" hidden><div class="sheet" id="lsheet"></div></div>
+
 <div id="ov" hidden><div class="sheet" id="sheet"></div></div>
 <div id="show" hidden></div>
 <div id="toast"></div>
 
 <script src="qrcode.js"></script>
+<script src="engine.js"></script>
+<script src="net.js"></script>
+<script src="live.js"></script>
 <script>
 const $ = (s) => document.querySelector(s);
 const store = {
@@ -208,6 +272,7 @@ function qrSvg(text) { const q = qrcode(0, 'M'); q.addData(text); q.make(); retu
 function pname(p) { return names[p] || 'Jugador ' + p; }
 
 function render() {
+  if (window.Live && Live.active) { $('#setup').hidden = true; $('#game').hidden = true; return; }
   const inGame = !!(G && G.cfg && setupView === 'game');
   $('#setup').hidden = inGame; $('#game').hidden = !inGame;
   if (!inGame) return renderSetup();
@@ -260,11 +325,14 @@ function renderSetup() {
   const w = $('#setupWrap');
   let h = '<h1>🃏 Cartas</h1>';
   if (setupView === 'home') {
-    h += '<div class="muted" style="text-align:center">Funciona sin internet y en modo avión. Cada teléfono es tu mano.</div>';
-    if (G && G.cfg) h += '<button class="big" data-act="resume">Continuar partida (' + esc(pname(G.seat)) + ', ronda ' + G.round + ')</button>';
-    h += '<button class="big' + (G && G.cfg ? ' sec' : '') + '" data-act="toCreate">Crear partida</button>';
-    h += '<button class="big sec" data-act="toJoin">Unirme con código</button>';
-    h += '<div class="box muted" style="font-size:13px"><b style="color:var(--ink)">Cómo funciona:</b> uno crea la partida y muestra el código QR. Los demás lo escanean con la cámara (o escriben el código) y eligen su número de jugador. Todos los teléfonos barajan igual y cada uno ve solo su mano. Lo que descartas o bajas lo muestras con tu pantalla; si alguien recoge una carta que todos vieron, la agrega con «+ Tomar carta vista».</div>';
+    h += '<div class="muted" style="text-align:center">Funciona sin internet y en modo avión.</div>';
+    h += '<div class="box"><h3 style="margin-top:0">Mesa en vivo</h3><div class="muted" style="font-size:13px">Mazo, descarte y mesa compartidos de verdad: cada teléfono ve su mano y todos ven la mesa. Todos en el mismo Wi-Fi o hotspot (no hace falta internet). Se conectan escaneando códigos QR.</div>';
+    if (Live.hostSaved()) h += '<div class="row" style="margin-top:12px"><button class="big" data-act="liveResume" style="flex:1">Continuar mi mesa (anfitrión)</button></div>';
+    if (Live.lastRole() === 'guest') h += '<div class="row" style="margin-top:12px"><button class="big" data-act="liveJoin" style="flex:1">Volver a la mesa</button></div>';
+    h += '<div class="row" style="margin-top:12px"><button class="big" data-act="liveHost" style="flex:1">Crear mesa</button><button class="big sec" data-act="liveJoin" style="flex:1">Unirme</button></div></div>';
+    h += '<div class="box"><h3 style="margin-top:0">Sin red (cada uno su mazo)</h3><div class="muted" style="font-size:13px">Si no hay ningún Wi-Fi ni hotspot en común. Todos los teléfonos barajan igual a partir de un código y cada uno ve solo su mano; lo que descartas o bajas lo muestras con tu pantalla, y si recoges una carta que todos vieron la agregas con «+ Tomar carta vista».</div>';
+    if (G && G.cfg) h += '<div class="row" style="margin-top:12px"><button class="big" data-act="resume" style="flex:1">Continuar partida (' + esc(pname(G.seat)) + ', ronda ' + G.round + ')</button></div>';
+    h += '<div class="row" style="margin-top:12px"><button class="big sec" data-act="toCreate" style="flex:1">Crear partida</button><button class="big sec" data-act="toJoin" style="flex:1">Unirme con código</button></div></div>';
   } else if (setupView === 'create') {
     const d = store.get('cartas-lastcfg') || { deck: 'F', copies: 1, jokers: false, players: 3, n: 7, m: 1 };
     h += '<div class="box"><h3>Baraja</h3><div class="row"><select id="cDeck">' + Object.keys(DECK_NAMES).map((k) => '<option value="' + k + '"' + (k === d.deck ? ' selected' : '') + '>' + DECK_NAMES[k] + '</option>').join('') + '</select>';
@@ -332,6 +400,9 @@ function doAct(k) {
     case 'toCreate': setupView = 'create'; return render();
     case 'toJoin': setupView = 'join'; setupCode = ''; return render();
     case 'resume': setupView = 'game'; return render();
+    case 'liveHost': return Live.host();
+    case 'liveJoin': return Live.join();
+    case 'liveResume': return Live.resumeHost();
     case 'create': {
       const c = { deck: $('#cDeck').value, copies: +$('#cCopies').value, jokers: $('#cJokers').checked, players: +$('#cPlayers').value, n: Math.max(0, +$('#cN').value || 0), m: Math.max(0, +$('#cM').value || 0) };
       if (c.n * c.players + c.m > deckSize(c)) return toast('No alcanzan las cartas: ' + deckSize(c) + ' en total');
@@ -385,6 +456,7 @@ function doAct(k) {
 }
 
 document.addEventListener('click', (e) => {
+  if (Live.active || e.target.closest('#live,#lov')) return;
   if (e.target.id === 'ov') return closeSheet();
   if (e.target.closest('#show')) { $('#show').hidden = true; return; }
   const t = e.target.closest('[data-id],[data-tc],[data-g],[data-act],[data-seat],[data-pick],[data-score]');
@@ -411,13 +483,21 @@ document.addEventListener('change', (e) => {
 });
 
 function readHash() {
-  const m = location.hash.match(/c=([^&]+)/);
+  const lv = location.hash.match(/^#([oa])=([A-Za-z0-9_-]+)/);
+  if (lv) {
+    history.replaceState(null, '', location.pathname + location.search); // a stale invite must not re-trigger on reload
+    if (lv[1] === 'o') { Live.openOffer(lv[2]); return true; }
+    toast('Ese código lo escanea el anfitrión desde la app (botón «＋ Invitar»).');
+    return false;
+  }
+  const m = location.hash.match(/[#&]c=([^&]+)/);
   if (!m) return false;
   const code = decodeURIComponent(m[1]).toUpperCase();
   if (!parseCode(code)) return false;
   if (G && G.cfg && G.code === code) { setupView = 'game'; return true; }
   setupCode = code; setupView = 'join'; return true;
 }
+window.appRender = render;
 window.addEventListener('hashchange', () => { readHash(); render(); });
 if (!readHash() && G && G.cfg) setupView = 'game';
 render();
